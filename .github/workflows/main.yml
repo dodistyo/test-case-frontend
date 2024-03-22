@@ -38,7 +38,7 @@ jobs:
         run: npm install
 
       - name: Build Frontend
-        run: npm build
+        run: npm run build
 
       - name: Build Docker image
         run: |
