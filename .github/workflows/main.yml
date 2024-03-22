@@ -29,6 +29,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '21.7.1'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Frontend
+        run: npm build
+
       - name: Build Docker image
         run: |
           docker build --platform linux/amd64 -t dodistyo/sample-frontend:latest -t dodistyo/sample-frontend:${{ github.sha }} .
