@@ -1,0 +1,58 @@
+name: CI/CD with Docker and SSH Deployment
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '21.7.1'
+
+      - name: Test
+        run: echo "there is no test"
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image
+        run: |
+          docker build --platform linux/amd64 -t dodistyo/sample-frontend:latest -t dodistyo/sample-frontend:${{ github.sha }} .
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          docker images
+          docker push dodistyo/sample-frontend:latest
+          docker push dodistyo/sample-frontend:${{ github.sha }}
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: SSH into deployment server and deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USERNAME }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            cd /usr/share/app-deployment &&
+            git pull origin master &&
+            export FRONTEND_IMAGE_TAG=${{ github.sha }} &&
+            docker stack deploy -c docker-compose.yml app
+            EOF
